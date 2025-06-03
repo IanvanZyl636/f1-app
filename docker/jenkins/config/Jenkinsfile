@@ -1,0 +1,103 @@
+pipeline {
+  agent any
+
+  stages {
+    stage('Checkout') {
+      steps {
+        checkout scm
+      }
+    }
+
+    stage('Install Dependencies'){
+      steps{
+        script {
+          sh 'npm i'
+        }
+      }
+    }
+
+    stage('DB setup') {
+      environment {
+        DATABASE_URL = "${TEST_DB_CONN_STRING}"
+      }
+      steps {
+        script {
+            sh 'npm run prisma:deploy'
+        }
+        script {
+            sh 'npm run prisma:reset:force'
+        }
+      }
+    }
+
+    stage('Lint') {
+      steps {
+        script {
+            sh 'npm run lint'
+        }
+      }
+    }
+
+    stage('Build') {
+      steps {
+        script {
+            sh 'npm run build'
+        }
+      }
+    }
+
+    stage('Test') {
+      environment {
+        DATABASE_URL = "${TEST_DB_CONN_STRING}"
+      }
+      steps {
+        script {
+            sh 'npm run test'
+        }
+      }
+    }
+
+    stage('Deploy') {
+      environment {
+        DATABASE_URL = "${DB_CONN_STRING}"
+        BACKEND_DOMAIN= 'http://backend:3333'
+      }
+      steps {
+        script {
+          sh 'npm run docker:start'
+        }
+        script {
+          def cloudflareTokenId = 'cloud-flare-tunnel-token'
+          def credsAvailable = false
+
+          try {
+            withCredentials([string(credentialsId: cloudflareTokenId, variable: 'CF_TOKEN')]) {
+              credsAvailable = true
+            }
+          } catch (Exception e) {
+            echo "No Cloudflare Tunnel token found: skipping tunnel start."
+          }
+
+          if (credsAvailable) {
+            withCredentials([string(credentialsId: cloudflareTokenId, variable: 'CF_TOKEN')]) {
+              env.CLOUD_FLARE_TUNNEL_TOKEN = env.CF_TOKEN
+              sh 'npm run docker:cloudflare:start'
+            }
+          }
+        }
+      }
+    }
+  }
+
+  post {
+    always {
+      cleanWs()
+    }
+    failure {
+      echo 'Build failed!'
+    }
+    success {
+      echo 'All images built and pushed successfully.'
+    }
+  }
+}

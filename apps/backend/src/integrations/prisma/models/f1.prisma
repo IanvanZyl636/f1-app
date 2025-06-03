@@ -1,0 +1,89 @@
+model Season {
+  id                    String          @id @default(uuid())
+  year                  Int             @unique
+  championId            String
+  champion              Driver          @relation("ChampionDriver", fields: [championId], references: [id])
+  championConstructorId String
+  championConstructor   TeamConstructor @relation("ChampionConstructor", fields: [championConstructorId], references: [id])
+  races                 Race[]
+  createdAt             DateTime        @default(now())
+  updatedAt             DateTime        @updatedAt
+}
+
+model Race {
+  id                  String   @id @default(uuid())
+  seasonId            String
+  name                String
+  round               Int
+  startedAt           DateTime
+  points              Int
+  laps                Int
+  circuitId           String
+  winnerId            String
+  winnerConstructorId String
+
+  circuit           Circuit         @relation(fields: [circuitId], references: [id])
+  winner            Driver          @relation("RaceWinner", fields: [winnerId], references: [id])
+  winnerConstructor TeamConstructor @relation("WinnerConstructor", fields: [winnerConstructorId], references: [id])
+  season            Season          @relation(fields: [seasonId], references: [id])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([seasonId, round])
+}
+
+model Circuit {
+  id          String @id @default(uuid())
+  circuitId   String @unique
+  circuitName String
+  locationId  String @unique
+
+  location Location @relation(fields: [locationId], references: [id])
+  races    Race[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Location {
+  id       String @id @default(uuid())
+  lat      String
+  long     String
+  locality String
+  country  String
+
+  circuit Circuit?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([lat, long])
+}
+
+model TeamConstructor {
+  id            String @id @default(uuid())
+  constructorId String @unique
+  name          String @unique
+  nationality   String
+
+  driverRaceWinner   Race[]   @relation("WinnerConstructor")
+  driverSeasonWinner Season[] @relation("ChampionConstructor")
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Driver {
+  id          String @id @default(uuid())
+  driverId    String @unique
+  fullName    String
+  code        String
+  nationality String
+
+  racesWon      Race[]   @relation("RaceWinner")
+  championships Season[] @relation("ChampionDriver")
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}

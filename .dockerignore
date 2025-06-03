@@ -1,0 +1,5 @@
+volumes
+.nx
+.idea
+node_modules
+docker
