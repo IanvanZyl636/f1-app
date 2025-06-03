@@ -1,3 +1,6 @@
+## The web application is hosted on:
+### https://f1.websphereinnovation.com/
+
 # 🏗️ High-Level Architecture & Trade-Offs
 
 This monorepo was designed to offer a **fully self-hostable**, **low-boilerplate**, **distributable-ready**, and **free full-stack application** (only requiring a domain name). No paid cloud services are used—**only Cloudflare Tunnel**, which is free.
